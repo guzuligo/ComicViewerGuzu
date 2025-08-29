@@ -1,5 +1,6 @@
 --How this application functions--
 
+
 This is a comic viewer application. It takes a JSON file and converts it into a comic.
 All assets are in "asset" folder.
 It is a one HTML file that contains all the code. It runs on client side. No server is required.
