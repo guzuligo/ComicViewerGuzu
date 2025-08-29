@@ -1,0 +1,50 @@
+--How this application functions--
+
+This is a comic viewer application. It takes a JSON file and converts it into a comic.
+All assets are in "asset" folder.
+It is a one HTML file that contains all the code. It runs on client side. No server is required.
+
+The comic contains pages. Each page is displayed alone. 
+Each page contains elements. Elements could be an image, sound effect, or background music.
+If you navigate to next page, everything on page will be removed and replaced with new page content. But here are some exceptions:
+    -If an element is marked to stay for several pages, example (From page 5 to 10), then that element won't unload while in range. 
+        An example use case is background images, foreground frame and background music.
+
+
+
+Following is the JSON file config used to create the page. There should be a function called loadJSON to load the comic and starts it on first page.
+
+
+Main configuration:
+    -Master Volume: Affects all audio elements
+    -Navigation Bar Pages: The limit of pages displayed in navigation bar. Default is 20.
+    -assets folder: Default is "assets"
+    -CSS styles: This contains a code in CSS format to be used by elements CSS. This replaces the need to hardcode CSS styles in the comic.html file.
+    -Resolution: This will make the comic hide anything out of borders. Also, it is used to determine the correct aspect ratio
+
+Page configurations: (Array of Pages)
+    -Auto Next: This is in seconds. If this is set to a number bigger than 0, the page will automatically go next page
+    -Elements: This is an element configuration to apply to that page
+    -Clean: If this is set to true, all images are removed, even persistant ones.
+
+
+Elements Configurations:
+    -Images: (Array of objects)
+        File: This is the image file name. This file should be in the assets folder. If not specified, a default red rectangle 64x64 in size is used.
+        CSS: This is the CSS code that would be applied to the image once it is loaded. This helps animate it. Empty by default.
+        z: This is the z depth of the image. Used to sort images on the page. Default is 0 if not specified.
+        persist: The number of pages this image stays on. It is 1 by default if not specified.
+        delay: The number of seconds to delay adding this image element. Default is 0 if not specified.
+    -Audio:
+        File: This is the audio file name. This file should be in the assets folder.
+        Volume: The volume of this specific audio. Default is 100 for full volume.
+        FadeIn: If this is set to more than 0, the audio will have fade in. This is in seconds.
+        FadeOut: If this is set to more than 0, the audio will fade out before its element is removed from page.
+
+
+Navigation:
+User can click/touch the right side of the page to go to next page.
+If the user click/touch the left side, he goes to pervious page. If the previous page has and Auto Next more than 0, then go to previous page until you either hit a zero auto next page, or if the total auto next seconds reach 3 seconds.
+In the bottom of the screen, there is a navigation bar with page numbers on it. It only appears if user click on the bottom of the page.
+The navigation bar jumps directly to the page number specified. It is limited to only 20 pages, if pages are more than 20, it displays every 2 pages or every 3 pages or more to stay in the 20 pages limit.
+
