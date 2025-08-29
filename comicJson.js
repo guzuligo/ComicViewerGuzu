@@ -5,10 +5,23 @@ function getComicJson() {
         "Navigation Bar Pages": 2,
         "Assets Folder": "assets",
         "Resolution":"1920x1080",
-        "CSS styles": "@keyframes slideIn { from { left: 0; transform:translateX(1000px); } to { left: 0; transform:translateX(0); } }",
+        "CSS styles": `
+
+            @keyframes slideIn { from { left: 0; transform:translateX(1000px); } to { left: 0; transform:translateX(0); } }
+            @keyframes shake {
+                0% { transform: translateY(110px); }
+            $n: 10;
+            @for $i from 1 through 9 {
+                $x: 20 * (-1 + ($i % 3));
+                #{$n * $i}% { transform: translateY(#{$x}px); }
+            }
+                100% { transform: translateY(0); }
+            }
+            
+        `,
         "Pages": [
-            {
-                "Auto Next": 0,
+            {//page 1
+                "AutoNext": 0,
                 "Elements": [
                     {
                         "File": "kai.png",
@@ -29,7 +42,8 @@ function getComicJson() {
                 "Clean": true
             }
             ,
-            {
+            {//page 2
+                "AutoNext": 3,
                 "Elements": [
                     {
                         "File": "42 cover.png",
@@ -41,15 +55,15 @@ function getComicJson() {
                 ]
             }
             ,
-            {
-                "Auto Next": 0,
+            {//page 3
+                "AutoNext": 0,
                 "Elements": [
                     {
                         "File": "kai.png",
-                        "CSS": "opacity: 50%;",
+                        "CSS": "opacity: 50%; animation: shake 2s linear;",
                         "z": 0,
                         "persist": 1,
-                        "delay": 0
+                        "delay": 1
                     }
                 ]
             }

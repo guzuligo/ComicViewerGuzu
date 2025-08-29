@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <!--This code was create with support of Windsurf Commands-->
 <html>
 <head>
@@ -76,25 +75,28 @@
         var masterVolume = 1;
         var navigationBarPages = 20;
         var assetsFolder = "assets";
-        var lastTime = 0;
-        var interval = setInterval(function (time) {
+        var lastTime = performance.now();
+        var interval = setInterval(function () {
+            var time = performance.now();
             var deltaTime = time - lastTime;
             lastTime = time;
-            var page;
-            for (var i = 0; i < pages.length; i++) {
-                page = pages[i];
-                if (page.AutoNext > 0 && page.AutoNext <= deltaTime / 1000) {
-                    loadPage(currentPage + 1);
-                }
-                var element;
+            var page = pages[currentPage-1];
+            var pageElement = document.getElementById("page");
+            console.log(page.AutoNext,currentPage)
+            //go to next page if time is up
+            if (page.AutoNext > 0 && pageElement.time+page.AutoNext*1000 <= time) {
+                loadPage(currentPage + 1);
+                return;
+            }
+            //add images and wait until their delay finish before adding
+            var page = pages[currentPage - 1];
+            if (page && page.Elements) {
                 for (var j = 0; j < page.Elements.length; j++) {
-                    element = page.Elements[j];
-                    if (element.delay > 0 && element.delay <= deltaTime / 1000) {
+                    var element = page.Elements[j];
+                    if (element.time <= time && !element.added) {
                         var image = document.createElement("img");
                         image.src = assetsFolder + "/" + element.File;
-                        //if (element.persist > 1) {
-                            image.id = element.File;
-                        //}
+                        image.id = element.File;
                         image.style.zIndex = element.z;
                         image.style.position = "absolute";
                         image.style.left = element.x;
@@ -103,6 +105,7 @@
                             image.style.cssText += element.CSS;
                         }
                         document.getElementById("page").appendChild(image);
+                        element.added = true;
                     }
                 }
             }
@@ -164,6 +167,7 @@
                     element.delay = element.delay || 0;
                     element.page = i + 1;
                     element.id = element.File;
+                    element.added = false;
                 }
             }
             pages = json.Pages;
@@ -181,7 +185,7 @@
                 var a = document.createElement("a");
                 a.id = "navBarPage" + (i + 1);
                 a.href = "javascript:loadPage(" + (i + 1) + ");";
-                a.innerHTML = i + 1;
+                a.innerHTML = (i + 1) + " ";
                 navBar.appendChild(a);
             }
 
@@ -191,24 +195,26 @@
             page = Math.min(Math.max(page, 1), pages.length);
             var pageConfig = pages[page - 1];
             var pageElement = document.getElementById("page");
+            pageElement.time= lastTime;//performance.now();
             currentPage = page;
             // TODO:Remove old images and ones that don't persist
-            // If this element should load on this page, then remove it before adding it.
             var childNodes = pageElement.childNodes;
             for (var i = childNodes.length - 1; i >= 0; i--) {
                 var child = childNodes[i];
                 if (child.nodeType == 1) {
                     var element = null;
                     for (var j = 0; j < pages.length; j++) {
-                        var elementConfig = pages[j].Elements;
-                        for (var k = 0; k < elementConfig.length; k++) {
-                            if (elementConfig[k].page == page || elementConfig[k].page< page || elementConfig[k].page > page + elementConfig[k].persist - 1) {
-                                element = elementConfig[k];
+                        var pageElements = pages[j].Elements;
+                        for (var k = 0; k < pageElements.length; k++) {
+                            if (pageElements[k].id == child.id) {
+                                element = pageElements[k];
                                 break;
                             }
                         }
+                        if (element) break;
                     }
-                    if (element && (element.persist == 1 || page < element.page || page > element.page + element.persist - 1)) {
+
+                    if (element && (element.persist == 1 || currentPage < element.page || currentPage >= element.page + element.persist)) {
                         pageElement.removeChild(child);
                     }
                 }
@@ -227,19 +233,8 @@
 
             var elements = pageConfig.Elements;
             for (var i = 0; i < elements.length; i++) {
-                var image = document.createElement("img");
-                image.src = assetsFolder + "/" + elements[i].File;
-                if (elements[i].persist > 1) {
-                    image.id = elements[i].File;
-                }
-                image.style.zIndex = elements[i].z;
-                image.style.position = "absolute";
-                image.style.left = elements[i].x;
-                image.style.top = elements[i].y;
-                if (elements[i].CSS) {
-                    image.style.cssText += elements[i].CSS;
-                }
-                pageElement.appendChild(image);
+                elements[i].added = false;
+                elements[i].time = pageElement.time + elements[i].delay * 1000;
             }
             if (pageConfig.Audio) {
                 var audio = pageConfig.Audio;
@@ -308,11 +303,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
