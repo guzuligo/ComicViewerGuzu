@@ -31,16 +31,9 @@ function getComicJson() {
                         "delay": 0
                     }
                 ],
-                "Audio": [
-                    {
-                        "File": "mp3_FondaeAudition-TaylorJo.mp3",
-                        "Volume": 100,
-                        "FadeIn": 0,
-                        "FadeOut": 0
-                    }
-                ],
+                
                 "Clean": true
-            }
+            }//
             ,
             {//page 2
                 "AutoNext": 3,
@@ -52,8 +45,17 @@ function getComicJson() {
                         "persist": 1,
                         "delay": 0
                     }
-                ]
-            }
+                ],
+                "Audio": [
+                    {
+                        "File": "mp3_FondaeAudition-TaylorJo.mp3",
+                        "Volume": 100,
+                        "FadeIn": 0,
+                        "FadeOut": 0,
+                         "persist": 2,
+                    }
+                ],
+            }//
             ,
             {//page 3
                 "AutoNext": 0,
@@ -66,7 +68,20 @@ function getComicJson() {
                         "delay": 1
                     }
                 ]
-            }
+            }//
+            ,
+            {//page 4
+                "AutoNext": 0,
+                "Elements": [
+                    {
+                        "File": "wisp notes.png",
+                        "CSS": "opacity: 50%; animation: slideIn 2s linear;",
+                        "z": 0,
+                        "persist": 1,
+                        "delay": 1
+                    }
+                ]
+            }//
         ]
     }
 }
