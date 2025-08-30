@@ -5,16 +5,7 @@ comicJson={
     "Resolution":"1920x1080",
     "CSS styles": `
 
-        @keyframes slideIn { from { left: 0; transform:translateX(1000px); } to { left: 0; transform:translateX(0); } }
-        @keyframes shake {
-            0% { transform: translateY(110px); }
-        $n: 10;
-        @for $i from 1 through 9 {
-            $x: 20 * (-1 + ($i % 3));
-            #{$n * $i}% { transform: translateY(#{$x}px); }
-        }
-            100% { transform: translateY(0); }
-        }
+        @keyframes slideIn { from {  transform:translateX(1000px); } to { transform:translateX(0); } }
         
     `,
     "Pages": [
@@ -38,7 +29,7 @@ comicJson={
             "Elements": [
                 {
                     "File": "42 cover.png",
-                    "CSS": "animation: slideIn 2s ease-in-out;",
+                    "CSS": "animation: upSlide 0.5s ease-out; left: 200px;",
                     "z": 0,
                     "persist": 2,
                     "delay": 0
@@ -56,11 +47,11 @@ comicJson={
         }//
         ,
         {//page 3
-            "AutoNext": 1,
+            //"AutoNext": 1,
             "Elements": [
                 {
                     "File": "kai.png",
-                    "CSS": "opacity: 50%; animation: shake 2s linear;",
+                    "CSS": "opacity: 50%; animation: shake 0.85s linear;",
                     "z": 0,
                     "persist": 1,
                     //"delay": 0.2
