@@ -24,7 +24,7 @@ function getComicJson() {
                 "AutoNext": 0,
                 "Elements": [
                     {
-                        "File": "kai.png",
+                        "File": "Screenshot 2025-07-09 160036.png",
                         "CSS": "",
                         "z": 0,
                         "persist": 1,
