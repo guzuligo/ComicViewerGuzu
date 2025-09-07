@@ -4,7 +4,7 @@ function getComicJson() {
         "Master Volume": 1,
         "Navigation Bar Pages": 2,
         "Assets Folder": "assets",
-        "Resolution":"1920x1080",
+        "Resolution":"640x360",//"1920x1080",
         "CSS styles": `
 
             @keyframes slideIn { from { left: 0; transform:translateX(1000px); } to { left: 0; transform:translateX(0); } }
@@ -42,7 +42,7 @@ function getComicJson() {
                         "File": "42 cover.png",
                         "CSS": "animation: slideIn 2s ease-in-out;",
                         "z": 0,
-                        "persist": 1,
+                        "persist": 3,
                         "delay": 0
                     }
                 ],
@@ -71,6 +71,19 @@ function getComicJson() {
             }//
             ,
             {//page 4
+                "AutoNext": 0,
+                "Elements": [
+                    {
+                        "File": "wisp notes.png",
+                        "CSS": "opacity: 50%; animation: slideIn 2s linear;",
+                        "z": 0,
+                        "persist": 1,
+                        "delay": 1
+                    }
+                ]
+            }//
+            ,
+            {//page 5
                 "AutoNext": 0,
                 "Elements": [
                     {

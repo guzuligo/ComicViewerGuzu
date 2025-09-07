@@ -27,11 +27,12 @@
             overflow: hidden;
         }
         #page img {
-            position: absolute;
-            width: auto;
-            height: auto;
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            object-fit: contain;
+            --display: flex;
+            
+            top: 0;
+            left: 0;
         }
         #navBar {
             position: absolute;
@@ -93,19 +94,25 @@
             if (page && page.Elements) {
                 for (var j = 0; j < page.Elements.length; j++) {
                     var element = page.Elements[j];
-                    if (element.time <= time && !element.added) {
-                        var image = document.createElement("img");
-                        image.src = assetsFolder + "/" + element.File;
-                        image.id = element.File;
-                        image.style.zIndex = element.z;
-                        image.style.position = "absolute";
-                        image.style.left = element.x;
-                        image.style.top = element.y;
-                        if (element.CSS) {
-                            image.style.cssText += element.CSS;
+                    // For persistent elements, we need to check if they should be displayed based on their persistence
+                    // If an element has persist > 1, it may have already been added to the DOM but needs to be re-checked for visibility
+                    if (element.time <= time) {
+                        // Check if this element is already in the DOM
+                        var existingElement = document.getElementById(element.id);
+                        if (!existingElement && !element.added) {
+                            var image = document.createElement("img");
+                            image.src = assetsFolder + "/" + element.File;
+                            image.id = element.id;
+                            image.style.zIndex = element.z;
+                            image.style.position = "absolute";
+                            image.style.left = element.x;
+                            image.style.top = element.y;
+                            if (element.CSS) {
+                                image.style.cssText += element.CSS;
+                            }
+                            document.getElementById("page").appendChild(image);
+                            element.added = true;
                         }
-                        document.getElementById("page").appendChild(image);
-                        element.added = true;
                     }
                 }
             }
@@ -118,6 +125,8 @@
                 document.getElementById("page").style.overflow = "hidden";
                 var r = /\d+/g;
                 var dims = resolution.match(r);
+                var ratio = dims[0]/dims[1];
+
                 if (dims.length == 2) {
                     var width = parseInt(dims[0]);
                     var height = parseInt(dims[1]);
@@ -141,6 +150,12 @@
                             document.getElementById("page").style.width = innerWidth + "px";
                             document.getElementById("page").style.height = innerWidth / aspectRatio + "px";
                         }
+                        // Also resize images when page container resizes
+                        var pageImages = document.getElementById("page").getElementsByTagName("img");
+                        for (var i = 0; i < pageImages.length; i++) {
+                            //pageImages[i].style.width = "100%";
+                            //pageImages[i].style.height = "100%";
+                        }
                     });
 
                     //Make #page img fit to #page
@@ -159,15 +174,29 @@
                 page.Clean = page.Clean || false;
                 page.number=i+1;
                 var element;
+                // Initialize elements with default values
                 for (var j = 0; j < page.Elements.length; j++) {
                     element = page.Elements[j];
                     element.CSS = element.CSS || "";
                     element.z = element.z || 0;
-                    element.persist = element.persist || 1;
+                    element.persist = element.persist || 1; //how many pages to persist, 1 means only current page
                     element.delay = element.delay || 0;
                     element.page = i + 1;
-                    element.id = element.File;
+                    // Generate unique ID for each element to avoid issues with base64 filenames
+                    element.id = "page" + (i+1) + "_elem" + j + "_" + element.File.substring(0, 10);
                     element.added = false;
+                }
+                // Initialize audio with default values
+                if (page.Audio) {
+                    for (var j = 0; j < page.Audio.length; j++) {
+                        var audio = page.Audio[j];
+                        audio.Volume = audio.Volume || 100;
+                        audio.FadeIn = audio.FadeIn || 0;
+                        audio.FadeOut = audio.FadeOut || 0;
+                        audio.persist = audio.persist || 1; //how many pages to persist, 1 means only current page
+                        audio.page = i + 1;
+                        audio.id = "page" + (i+1) + "_elem" + j + "_audio";
+                    }
                 }
             }
             pages = json.Pages;
@@ -191,7 +220,7 @@
 
             loadPage(currentPage);
         };
-        var loadPage = function (page) {
+var loadPage = function (page) {
             page = Math.min(Math.max(page, 1), pages.length);
             var pageConfig = pages[page - 1];
             var pageElement = document.getElementById("page");
@@ -199,8 +228,10 @@
             currentPage = page;
             //Distroy the page if clean is true
             if (!pageConfig.Clean) 
-                cleanPage(pageElement, pageConfig)
+                //partially clean the page if not full clean required
+                cleanPagePartially(pageElement, pageConfig)
             else {
+                //Fully clean the page
                 var childNodes = pageElement.childNodes;
                 for (var i = childNodes.length - 1; i >= 0; i--) {
                     var child = childNodes[i];
@@ -211,39 +242,182 @@
             }
                 
             
-            addPageElements(pageElement, pageConfig);
+            // Combined function to handle both persistent and page elements
+            var combinedElements = function(pageElement, pageConfig) {
+                // Add persistent elements from previous pages first
+                for (var i = 1; i <= currentPage - 1; i++) {
+                    var prevPage = pages[i - 1];
+                    if (prevPage && prevPage.Elements) {
+                        for (var j = 0; j < prevPage.Elements.length; j++) {
+                            var element = prevPage.Elements[j];
+                            // Check if this element is persistent and should be visible on the current page
+                            // An element with persist > 1 should be visible for multiple pages
+                            // It should be visible from its own page to (element.page + element.persist - 1)
+                            var maxVisiblePage = element.page + element.persist - 1;
+                            if (element.persist > 1 && currentPage <= maxVisiblePage) {
+                                // Add persistent elements from previous pages if they aren't already in DOM
+                                var existingElement = document.getElementById(element.id);
+                                if (!existingElement) {
+                                    var image = document.createElement("img");
+                                    image.src = assetsFolder + "/" + element.File;
+                                    image.id = element.id;
+                                    image.style.zIndex = element.z;
+                                    image.style.position = "absolute";
+                                    image.style.left = element.x;
+                                    image.style.top = element.y;
+                                    if (element.CSS) {
+                                        image.style.cssText += element.CSS;
+                                    }
+                                    pageElement.appendChild(image);
+                                    element.added = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Add persistent audio from previous pages that should still be visible
+                for (var i = 1; i <= currentPage - 1; i++) {
+                    var prevPage = pages[i - 1];
+                    if (prevPage && prevPage.Audio) {
+                        for (var j = 0; j < prevPage.Audio.length; j++) {
+                            var audio = prevPage.Audio[j];
+                            // Check if this audio is persistent and should be visible on the current page
+                            var maxVisiblePage = audio.page + audio.persist - 1;
+                            if (audio.persist > 1 && currentPage <= maxVisiblePage) {
+                                // Check if audio element already exists for this file
+                                var existingAudio = pageElement.querySelector('audio[src="' + assetsFolder + "/" + audio.File + '"]');
+                                if (!existingAudio) {
+                                    var sound = document.createElement("audio");
+                                    sound.src = assetsFolder + "/" + audio.File;
+                                    sound.volume = masterVolume * (audio.Volume / 100);
+                                    // Store persist and page info directly on the audio element
+                                    sound.persist = audio.persist || 1;
+                                    sound.page = audio.page || i; // Set to the page where it originates
+                                    if (audio.FadeIn > 0) {
+                                        sound.addEventListener("canplay", function (e) {
+                                            e.target.volume = 0;
+                                            var interval = setInterval(function () {
+                                                if (e.target.volume < masterVolume * (audio.Volume / 100)) {
+                                                    e.target.volume += 0.1;
+                                                } else {
+                                                    clearInterval(interval);
+                                                }
+                                            }, 100);
+                                        });
+                                    }
+                                    if (audio.FadeOut > 0) {
+                                        sound.addEventListener("ended", function (e) {
+                                            var interval = setInterval(function () {
+                                                if (e.target.volume > 0) {
+                                                    e.target.volume -= 0.1;
+                                                } else {
+                                                    clearInterval(interval);
+                                                }
+                                            }, 100);
+                                        });
+                                    }
+                                    pageElement.appendChild(sound);
+                                    // Only play if it's not already playing
+                                    if (sound.paused) {
+                                        sound.play();
+                                    }
+                                } else {
+                                    // If audio already exists, update its persist and page properties
+                                    existingAudio.persist = audio.persist || 1;
+                                    existingAudio.page = audio.page || i;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Process current page elements
+                var elements = pageConfig.Elements;
+                for (var i = 0; i < elements.length; i++) {
+                    elements[i].added = false;
+                    elements[i].time = pageElement.time + elements[i].delay * 1000;
+                }
+                if (pageConfig.Audio) {
+                    var audio = pageConfig.Audio;
+                    for (var i = 0; i < audio.length; i++) {
+                        // Check if audio element already exists for this file
+                        var existingAudio = pageElement.querySelector('audio[src="' + assetsFolder + "/" + audio[i].File + '"]');
+                        if (!existingAudio) {
+                            var sound = document.createElement("audio");
+                            sound.src = assetsFolder + "/" + audio[i].File;
+                            sound.volume = masterVolume * (audio[i].Volume / 100);
+                            // Store persist and page info directly on the audio element
+                            sound.persist = audio[i].persist || 1;
+                            sound.page = audio[i].page || currentPage;
+                            if (audio[i].FadeIn > 0) {
+                                sound.addEventListener("canplay", function (e) {
+                                    e.target.volume = 0;
+                                    var interval = setInterval(function () {
+                                        if (e.target.volume < masterVolume * (audio[i].Volume / 100)) {
+                                            e.target.volume += 0.1;
+                                        } else {
+                                            clearInterval(interval);
+                                        }
+                                    }, 100);
+                                });
+                            }
+                            if (audio[i].FadeOut > 0) {
+                                sound.addEventListener("ended", function (e) {
+                                    var interval = setInterval(function () {
+                                        if (e.target.volume > 0) {
+                                            e.target.volume -= 0.1;
+                                        } else {
+                                            clearInterval(interval);
+                                        }
+                                    }, 100);
+                                });
+                            }
+                            pageElement.appendChild(sound);
+                            sound.play();
+                        } else {
+                            // If audio already exists, update its persist and page properties
+                            existingAudio.persist = audio[i].persist || 1;
+                            existingAudio.page = audio[i].page || currentPage;
+                        }
+                    }
+                }
+            };
+            
+            combinedElements(pageElement, pageConfig);
         };
 
-        var cleanPage = function (pageElement, pageConfig) {
+        var cleanPagePartially = function (pageElement, pageConfig) {
             var childNodes = pageElement.childNodes;
             for (var i = childNodes.length - 1; i >= 0; i--) {
                 var child = childNodes[i];
                 if (child.nodeType == 1) {
-                    var element = null;
-                    for (var j = 0; j < pages.length; j++) {
-                        var pageElements = pages[j].Elements;
-                        for (var k = 0; k < pageElements.length; k++) {
-                            if (pageElements[k].id == child.id) {
-                                element = pageElements[k];
-                                break;
+                    // Handle audio elements separately from regular elements
+                    if (child.tagName === "AUDIO") {
+                        // Check if this audio element has exceeded its persistence limit
+                        if (child.page && child.persist) {
+                            if (currentPage > child.page + child.persist - 1) {
+                                pageElement.removeChild(child);
                             }
                         }
-                        if (element) break;
-                    }
-
-                    // Remove non-persistent images
-                    if (child.tagName === 'IMG') {
-                        if (element && (element.persist == 1 || currentPage < element.page || currentPage >= element.page + element.persist)) {
-                            pageElement.removeChild(child);
+                    } else {
+                        var element = null;
+                        for (var j = 0; j < pages.length; j++) {
+                            var pageElements = pages[j].Elements;
+                            for (var k = 0; k < pageElements.length; k++) {
+                                if (pageElements[k].id == child.id) {
+                                    element = pageElements[k];
+                                    break;
+                                }
+                            }
+                            if (element) break;
                         }
-                    }
-                    // Remove non-persistent audio using properties on the element
-                    else if (child.tagName === 'AUDIO') {
-                        var persist = child.persist || 1;
-                        var audioPage = child.page || currentPage;
-                        if (persist == 1 || currentPage < audioPage || currentPage >= audioPage + persist) {
-                            child.pause && child.pause();
-                            child.currentTime = 0;
+
+                        // Remove non-persistent elements
+                        // An element should be removed if:
+                        // 1. It's not persistent at all (persist == 1), OR
+                        // 2. We're on a page that's beyond its persistence window
+                        if (element && (element.persist == 1 || currentPage > element.page + element.persist - 1)) {
                             pageElement.removeChild(child);
                         }
                     }
@@ -251,54 +425,6 @@
             }
 
             
-        };
-
-        var addPageElements = function (pageElement, pageConfig) {
-            var elements = pageConfig.Elements;
-            for (var i = 0; i < elements.length; i++) {
-                elements[i].added = false;
-                elements[i].time = pageElement.time + elements[i].delay * 1000;
-            }
-            if (pageConfig.Audio) {
-                var audio = pageConfig.Audio;
-                for (var i = 0; i < audio.length; i++) {
-                    // Check if audio element already exists for this file
-                    var existingAudio = pageElement.querySelector('audio[src="' + assetsFolder + "/" + audio[i].File + '"]');
-                    if (!existingAudio) {
-                        var sound = document.createElement("audio");
-                        sound.src = assetsFolder + "/" + audio[i].File;
-                        sound.volume = masterVolume * (audio[i].Volume / 100);
-                        // Store persist and page info directly on the audio element
-                        sound.persist = audio[i].persist || 1;
-                        sound.page = audio[i].page || currentPage;
-                        if (audio[i].FadeIn > 0) {
-                            sound.addEventListener("canplay", function (e) {
-                                e.target.volume = 0;
-                                var interval = setInterval(function () {
-                                    if (e.target.volume < masterVolume * (audio[i].Volume / 100)) {
-                                        e.target.volume += 0.1;
-                                    } else {
-                                        clearInterval(interval);
-                                    }
-                                }, 100);
-                            });
-                        }
-                        if (audio[i].FadeOut > 0) {
-                            sound.addEventListener("ended", function (e) {
-                                var interval = setInterval(function () {
-                                    if (e.target.volume > 0) {
-                                        e.target.volume -= 0.1;
-                                    } else {
-                                        clearInterval(interval);
-                                    }
-                                }, 100);
-                            });
-                        }
-                        pageElement.appendChild(sound);
-                        sound.play();
-                    }
-                }
-            }
         };
         document.addEventListener("click", function (e) {
             // Only change page if click is on the page area, not the navigation bar
